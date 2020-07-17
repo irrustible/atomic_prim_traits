@@ -1,6 +1,6 @@
 [package]
 name = "atomic_prim_traits"
-version = "0.1.0"
+version = "0.1.1"
 description = "Traits over primitive atomic types."
 keywords = ["atomic", "atomics", "trait", "traits"]
 categories = ["concurrency", "hardware-support"]
