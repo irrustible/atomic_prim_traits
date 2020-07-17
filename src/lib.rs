@@ -245,3 +245,9 @@ impl_atomic_int!(atomic::AtomicU16 = u16);
 impl_atomic_int!(atomic::AtomicU32 = u32);
 impl_atomic_int!(atomic::AtomicU64 = u64);
 impl_atomic_int!(atomic::AtomicUsize = usize);
+
+impl_atomic_int!(atomic::AtomicI8 = i8);
+impl_atomic_int!(atomic::AtomicI16 = i16);
+impl_atomic_int!(atomic::AtomicI32 = i32);
+impl_atomic_int!(atomic::AtomicI64 = i64);
+impl_atomic_int!(atomic::AtomicIsize = isize);
