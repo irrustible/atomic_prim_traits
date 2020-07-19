@@ -6,6 +6,7 @@ keywords = ["atomic", "atomics", "trait", "traits"]
 categories = ["concurrency", "hardware-support"]
 homepage = "https://github.com/irrustible/atomic_prim_traits"
 repository = "https://github.com/irrustible/atomic_prim_traits"
+documentation = "https://docs.rs/atomic_prim_traits"
 authors = ["James Laver <james.laver@gmail.com>"]
 license = "MPL-2.0"
 edition = "2018"
