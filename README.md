@@ -1,5 +1,9 @@
 # atomic\_prim\_traits
 
+[![License](https://img.shields.io/crates/l/atomic_prim_traits.svg)](https://github.com/irrustible/atomic_prim_traits/blob/main/LICENSE)
+[![Package](https://img.shields.io/crates/v/atomic_prim_traits.svg)](https://crates.io/crates/atomic_prim_traits)
+[![Documentation](https://docs.rs/atomic_prim_traits/badge.svg)](https://docs.rs/atomic_prim_traits)
+
 Traits over atomic primitive integer types.
 
 ## Notes
