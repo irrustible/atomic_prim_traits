@@ -1,9 +1,30 @@
 #![cfg_attr(feature = "nightly", feature(atomic_min_max, atomic_mut_ptr, no_more_cas))]
 use std::sync::atomic::{self, Ordering};
+use std::hash::Hash;
+use std::fmt::{Debug, Display};
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
+use std::ops::{
+    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign, Rem, RemAssign,
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign,
+    Shl, ShlAssign, Shr, ShrAssign,
+    Not,
+};
+
 pub trait AtomicInt : Default + Send + Sync + RefUnwindSafe + UnwindSafe {
-    type Prim: Sized + Eq + Ord;
+    type Prim
+        : Copy + Debug + Display + Eq + Hash + Ord + Sized
+        + Add + AddAssign
+        + BitAnd + BitAndAssign
+        + BitOr + BitOrAssign
+        + BitXor + BitXorAssign
+        + Div + DivAssign
+        + Mul + MulAssign
+        + Not
+        + Rem + RemAssign
+        + Shl + ShlAssign
+        + Shr + ShrAssign
+        + Sub + SubAssign;
 
     fn new(val: <Self as AtomicInt>::Prim) -> Self;
 
