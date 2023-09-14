@@ -26,6 +26,12 @@ pub trait AtomicInt : Default + Send + Sync + RefUnwindSafe + UnwindSafe {
         + Shr + ShrAssign
         + Sub + SubAssign;
 
+    const ZERO: <Self as AtomicInt>::Prim;
+    const ONE: <Self as AtomicInt>::Prim;
+
+    const MIN: <Self as AtomicInt>::Prim;
+    const MAX: <Self as AtomicInt>::Prim;
+
     fn new(val: <Self as AtomicInt>::Prim) -> Self;
 
     fn fetch_add(
@@ -116,6 +122,12 @@ pub trait AtomicInt : Default + Send + Sync + RefUnwindSafe + UnwindSafe {
 macro_rules! impl_atomic_int {
     ($atomic:ty = $prim:ty) => {
         impl AtomicInt for $atomic {
+            const ZERO: $prim = 0;
+            const ONE: $prim = 1;
+
+            const MIN: $prim = <$prim>::MIN;
+            const MAX: $prim = <$prim>::MAX;
+
             type Prim = $prim;
 
             fn new(val: $prim) -> Self {
