@@ -92,13 +92,6 @@ pub trait AtomicInt : Default + Send + Sync + RefUnwindSafe + UnwindSafe {
 
     fn swap(&self, val: <Self as AtomicInt>::Prim, order: Ordering) -> <Self as AtomicInt>::Prim;
 
-    fn compare_and_swap(
-        &self,
-        current: <Self as AtomicInt>::Prim,
-        new: <Self as AtomicInt>::Prim,
-        ordering: Ordering
-    ) -> <Self as AtomicInt>::Prim;
-
     fn compare_exchange(
         &self,
         current: <Self as AtomicInt>::Prim,
@@ -228,15 +221,6 @@ macro_rules! impl_atomic_int {
 
             fn swap(&self, val: $prim, order: Ordering) -> $prim {
                 self.swap(val, order)
-            }
-
-            fn compare_and_swap(
-                &self,
-                current: $prim,
-                new: $prim,
-                ordering: Ordering
-            ) -> $prim {
-                self.compare_and_swap(current, new, ordering)
             }
 
             fn compare_exchange(
