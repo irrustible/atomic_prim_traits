@@ -8,8 +8,8 @@ Traits over atomic primitive integer types.
 
 ## Notes
 
-* Enable feature `nightly` to get `min`, `max`, `fetch_update` and
-  `as_mut_ptr` when you have a nightly compiler available.
+* Enable feature `nightly` to get `as_mut_ptr` when you have a nightly compiler available.
+* Rust 1.45.0 or newer is required
 
 ## Copyright and License
 

@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "nightly", feature(atomic_min_max, atomic_mut_ptr, no_more_cas))]
+#![cfg_attr(feature = "nightly", feature(atomic_mut_ptr))]
 use std::sync::atomic::{self, Ordering};
 use std::hash::Hash;
 use std::fmt::{Debug, Display};
@@ -64,18 +64,15 @@ pub trait AtomicInt : Default + Send + Sync + RefUnwindSafe + UnwindSafe {
         ordering: Ordering
     ) -> <Self as AtomicInt>::Prim;
 
-    #[cfg(feature="nightly")]
     fn fetch_min(&self, val: <Self as AtomicInt>::Prim, order: Ordering) -> <Self as AtomicInt>::Prim;
 
-    #[cfg(feature="nightly")]
     fn fetch_max(&self, val: <Self as AtomicInt>::Prim, order: Ordering) -> <Self as AtomicInt>::Prim;
 
-    #[cfg(feature="nightly")]
     fn fetch_update<F>(
         &self,
-        f: F,
+        set_order: Ordering,
         fetch_order: Ordering,
-        set_order: Ordering
+        f: F
     ) -> Result<<Self as AtomicInt>::Prim, <Self as AtomicInt>::Prim>
     where F: FnMut(<Self as AtomicInt>::Prim) -> Option<<Self as AtomicInt>::Prim>;
 
@@ -173,7 +170,6 @@ macro_rules! impl_atomic_int {
                 self.fetch_xor(new, ordering)
             }
 
-            #[cfg(feature = "nightly")]
             fn fetch_min(
                 &self,
                 val: $prim,
@@ -182,7 +178,6 @@ macro_rules! impl_atomic_int {
                 self.fetch_min(val, ordering)
             }
 
-            #[cfg(feature = "nightly")]
             fn fetch_max(
                 &self,
                 val: $prim,
@@ -191,17 +186,16 @@ macro_rules! impl_atomic_int {
                 self.fetch_max(val, ordering)
             }
 
-            #[cfg(feature = "nightly")]
             fn fetch_update<F>(
                 &self,
-                f: F,
-                fetch_order: Ordering,
                 set_order: Ordering,
+                fetch_order: Ordering,
+                f: F,
             ) -> Result<$prim, $prim>
             where
                 F: FnMut($prim) -> Option<$prim>,
             {
-                self.fetch_update(f, fetch_order, set_order)
+                self.fetch_update(set_order, fetch_order, f)
             }
 
             fn get_mut(&mut self) -> &mut $prim {
