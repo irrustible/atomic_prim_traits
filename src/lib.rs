@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "nightly", feature(atomic_min_max, atomic_mut_ptr, no_more_cas))]
+#![cfg_attr(feature = "nightly", feature(atomic_mut_ptr))]
 use std::sync::atomic::{self, Ordering};
 use std::hash::Hash;
 use std::fmt::{Debug, Display};
@@ -14,17 +14,23 @@ use std::ops::{
 pub trait AtomicInt : Default + Send + Sync + RefUnwindSafe + UnwindSafe {
     type Prim
         : Copy + Debug + Display + Eq + Hash + Ord + Sized
-        + Add + AddAssign
-        + BitAnd + BitAndAssign
-        + BitOr + BitOrAssign
-        + BitXor + BitXorAssign
-        + Div + DivAssign
-        + Mul + MulAssign
-        + Not
-        + Rem + RemAssign
-        + Shl + ShlAssign
-        + Shr + ShrAssign
-        + Sub + SubAssign;
+        + Add<Output = <Self as AtomicInt>::Prim> + AddAssign
+        + BitAnd<Output = <Self as AtomicInt>::Prim> + BitAndAssign
+        + BitOr<Output = <Self as AtomicInt>::Prim> + BitOrAssign
+        + BitXor<Output = <Self as AtomicInt>::Prim> + BitXorAssign
+        + Div<Output = <Self as AtomicInt>::Prim> + DivAssign
+        + Mul<Output = <Self as AtomicInt>::Prim> + MulAssign
+        + Not<Output = <Self as AtomicInt>::Prim>
+        + Rem<Output = <Self as AtomicInt>::Prim> + RemAssign
+        + Shl<Output = <Self as AtomicInt>::Prim> + ShlAssign
+        + Shr<Output = <Self as AtomicInt>::Prim> + ShrAssign
+        + Sub<Output = <Self as AtomicInt>::Prim> + SubAssign;
+
+    const ZERO: <Self as AtomicInt>::Prim;
+    const ONE: <Self as AtomicInt>::Prim;
+
+    const MIN: <Self as AtomicInt>::Prim;
+    const MAX: <Self as AtomicInt>::Prim;
 
     fn new(val: <Self as AtomicInt>::Prim) -> Self;
 
@@ -64,18 +70,15 @@ pub trait AtomicInt : Default + Send + Sync + RefUnwindSafe + UnwindSafe {
         ordering: Ordering
     ) -> <Self as AtomicInt>::Prim;
 
-    #[cfg(feature="nightly")]
     fn fetch_min(&self, val: <Self as AtomicInt>::Prim, order: Ordering) -> <Self as AtomicInt>::Prim;
 
-    #[cfg(feature="nightly")]
     fn fetch_max(&self, val: <Self as AtomicInt>::Prim, order: Ordering) -> <Self as AtomicInt>::Prim;
 
-    #[cfg(feature="nightly")]
     fn fetch_update<F>(
         &self,
-        f: F,
+        set_order: Ordering,
         fetch_order: Ordering,
-        set_order: Ordering
+        f: F
     ) -> Result<<Self as AtomicInt>::Prim, <Self as AtomicInt>::Prim>
     where F: FnMut(<Self as AtomicInt>::Prim) -> Option<<Self as AtomicInt>::Prim>;
 
@@ -88,13 +91,6 @@ pub trait AtomicInt : Default + Send + Sync + RefUnwindSafe + UnwindSafe {
     fn store(&self, val: <Self as AtomicInt>::Prim, order: Ordering);
 
     fn swap(&self, val: <Self as AtomicInt>::Prim, order: Ordering) -> <Self as AtomicInt>::Prim;
-
-    fn compare_and_swap(
-        &self,
-        current: <Self as AtomicInt>::Prim,
-        new: <Self as AtomicInt>::Prim,
-        ordering: Ordering
-    ) -> <Self as AtomicInt>::Prim;
 
     fn compare_exchange(
         &self,
@@ -119,6 +115,12 @@ pub trait AtomicInt : Default + Send + Sync + RefUnwindSafe + UnwindSafe {
 macro_rules! impl_atomic_int {
     ($atomic:ty = $prim:ty) => {
         impl AtomicInt for $atomic {
+            const ZERO: $prim = 0;
+            const ONE: $prim = 1;
+
+            const MIN: $prim = <$prim>::MIN;
+            const MAX: $prim = <$prim>::MAX;
+
             type Prim = $prim;
 
             fn new(val: $prim) -> Self {
@@ -173,7 +175,6 @@ macro_rules! impl_atomic_int {
                 self.fetch_xor(new, ordering)
             }
 
-            #[cfg(feature = "nightly")]
             fn fetch_min(
                 &self,
                 val: $prim,
@@ -182,7 +183,6 @@ macro_rules! impl_atomic_int {
                 self.fetch_min(val, ordering)
             }
 
-            #[cfg(feature = "nightly")]
             fn fetch_max(
                 &self,
                 val: $prim,
@@ -191,17 +191,16 @@ macro_rules! impl_atomic_int {
                 self.fetch_max(val, ordering)
             }
 
-            #[cfg(feature = "nightly")]
             fn fetch_update<F>(
                 &self,
-                f: F,
-                fetch_order: Ordering,
                 set_order: Ordering,
+                fetch_order: Ordering,
+                f: F,
             ) -> Result<$prim, $prim>
             where
                 F: FnMut($prim) -> Option<$prim>,
             {
-                self.fetch_update(f, fetch_order, set_order)
+                self.fetch_update(set_order, fetch_order, f)
             }
 
             fn get_mut(&mut self) -> &mut $prim {
@@ -222,15 +221,6 @@ macro_rules! impl_atomic_int {
 
             fn swap(&self, val: $prim, order: Ordering) -> $prim {
                 self.swap(val, order)
-            }
-
-            fn compare_and_swap(
-                &self,
-                current: $prim,
-                new: $prim,
-                ordering: Ordering
-            ) -> $prim {
-                self.compare_and_swap(current, new, ordering)
             }
 
             fn compare_exchange(
@@ -272,3 +262,28 @@ impl_atomic_int!(atomic::AtomicI16 = i16);
 impl_atomic_int!(atomic::AtomicI32 = i32);
 impl_atomic_int!(atomic::AtomicI64 = i64);
 impl_atomic_int!(atomic::AtomicIsize = isize);
+
+#[cfg(test)]
+mod test {
+    use std::sync::atomic::AtomicU8;
+    use super::*;
+
+    #[test]
+    fn test_fetch_update() {
+        fn incr<T: AtomicInt>(value: &T) -> Result<<T as AtomicInt>::Prim, <T as AtomicInt>::Prim> {
+            value.fetch_update(
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+                |i| Some(if i == T::MAX { T::MIN } else { i + T::ONE })
+            )
+        }
+
+        let value = AtomicU8::new(0);
+        assert_eq!(incr(&value), Ok(0));
+        assert_eq!(incr(&value), Ok(1));
+
+        let value = AtomicU8::new(255);
+        assert_eq!(incr(&value), Ok(255));
+        assert_eq!(incr(&value), Ok(0));
+    }
+}
